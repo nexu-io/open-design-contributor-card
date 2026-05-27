@@ -1,0 +1,37 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "open-design-contributor-card",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-05-27",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
+  "vars": {
+    "PUBLIC_BASE_URL": "https://open-design-contributor-card.powerformer.workers.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "open-design-contributor-card",
+      "database_id": "ec23f6a2-b5a5-447d-b9ca-e126b0e24fde",
+      "preview_database_id": "ec23f6a2-b5a5-447d-b9ca-e126b0e24fde",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "CARD_ASSETS",
+      "bucket_name": "open-design-contributor-card-assets",
+      "preview_bucket_name": "open-design-contributor-card-assets"
+    }
+  ],
+	"triggers": {
+		"crons": [
+			"0 2 * * *"
+		]
+	}
+}
