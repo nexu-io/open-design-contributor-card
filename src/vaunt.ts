@@ -1,6 +1,7 @@
 const API_BASE = "https://api.vaunt.dev/v1";
 const PAGE_LIMIT = 100;
 const MIN_SIGNAL_SCORE = 10;
+const VAUNT_TIMEOUT_MS = 8_000;
 
 export interface VauntContributorScore {
   login: string;
@@ -44,9 +45,10 @@ export async function fetchVauntContributorLookup(owner: string, repo: string, l
     const url = new URL(`${API_BASE}/github/entities/${owner}/repositories/${repo}/contributors`);
     url.searchParams.set("limit", String(PAGE_LIMIT));
     if (cursor) url.searchParams.set("after", cursor);
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(VAUNT_TIMEOUT_MS) });
     if (!response.ok) {
-      throw new Error(`Vaunt API failed: ${response.status} ${response.statusText}`);
+      console.warn("Vaunt API lookup failed", { owner, repo, status: response.status, statusText: response.statusText });
+      return { score: null, totalContributors: seen.size };
     }
 
     const payload = await response.json<VauntContributorsResponse>();

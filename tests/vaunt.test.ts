@@ -41,4 +41,21 @@ describe("fetchVauntContributorLookup", () => {
     expect(lookup.totalContributors).toBe(4);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("falls back to an empty lookup when Vaunt is unavailable", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi.fn(async () => new Response("not found", { status: 404, statusText: "Not Found" }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchVauntContributorLookup("nexu-io", "open-design", "alice")).resolves.toEqual({
+      score: null,
+      totalContributors: 0,
+    });
+    expect(warn).toHaveBeenCalledWith("Vaunt API lookup failed", {
+      owner: "nexu-io",
+      repo: "open-design",
+      status: 404,
+      statusText: "Not Found",
+    });
+  });
 });
