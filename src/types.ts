@@ -22,6 +22,10 @@ export interface ContributorStateEntry {
   lastVauntScore: number | null;
   lastWeightedScore: number;
   lastReason: string | null;
+  prsMerged?: number;
+  reviews?: number;
+  issuesOpened?: number;
+  commentedThreads?: number;
 }
 
 export interface CardModel {

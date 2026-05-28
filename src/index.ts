@@ -178,6 +178,10 @@ async function processRelay(env: RuntimeEnv, envelope: RelayEnvelope): Promise<R
     lastVauntScore: vauntLookup.score?.score ?? null,
     lastWeightedScore: weightedScoreFromStats(stats),
     lastReason: context.reason,
+    prsMerged: stats.prsMerged,
+    reviews: stats.reviews,
+    issuesOpened: stats.issuesOpened,
+    commentedThreads: stats.commentedThreads,
   });
 
   if (envelope.deliveryId) {

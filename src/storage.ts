@@ -42,8 +42,8 @@ export async function upsertContributorState(db: D1Database, state: ContributorS
     INSERT INTO contributors (
       login, avatar_url, last_announced_tier, last_known_score, last_checked_at, last_announced_at,
       score_version, last_rank, last_total_contributors, last_vaunt_score, last_weighted_score,
-      last_reason, created_at, updated_at
-    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?13)
+      last_reason, created_at, updated_at, prs_merged, reviews, issues_accepted, discussions_answered
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?13, ?14, ?15, ?16, ?17)
     ON CONFLICT(login) DO UPDATE SET
       avatar_url = excluded.avatar_url,
       last_announced_tier = excluded.last_announced_tier,
@@ -56,6 +56,10 @@ export async function upsertContributorState(db: D1Database, state: ContributorS
       last_vaunt_score = excluded.last_vaunt_score,
       last_weighted_score = excluded.last_weighted_score,
       last_reason = excluded.last_reason,
+      prs_merged = excluded.prs_merged,
+      reviews = excluded.reviews,
+      issues_accepted = excluded.issues_accepted,
+      discussions_answered = excluded.discussions_answered,
       updated_at = excluded.updated_at
   `).bind(
     state.login.toLowerCase(),
@@ -71,6 +75,10 @@ export async function upsertContributorState(db: D1Database, state: ContributorS
     state.lastWeightedScore,
     state.lastReason,
     now,
+    state.prsMerged ?? 0,
+    state.reviews ?? 0,
+    state.issuesOpened ?? 0,
+    state.commentedThreads ?? 0,
   ).run();
 }
 

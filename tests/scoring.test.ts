@@ -16,7 +16,7 @@ describe("eventScoreFloor", () => {
 });
 
 describe("resolveCurrentScore", () => {
-  it("takes the max of vaunt, weighted, state and event floors", () => {
+  it("takes the max of vaunt, weighted and event floors", () => {
     const result = resolveCurrentScore({
       vauntScore: 18,
       stats: { prsMerged: 1, reviews: 1, issuesOpened: 0, commentedThreads: 0 },
@@ -42,6 +42,35 @@ describe("resolveCurrentScore", () => {
       },
     });
 
-    expect(result.currentScore).toBe(35);
+    expect(result.currentScore).toBe(33);
+  });
+
+  it("does not add an event floor to existing state on reruns", () => {
+    const result = resolveCurrentScore({
+      vauntScore: 10,
+      stats: { prsMerged: 0, reviews: 0, issuesOpened: 6, commentedThreads: 40 },
+      existing: {
+        login: "alice",
+        avatarUrl: null,
+        lastAnnouncedTier: "signal",
+        lastKnownScore: 75,
+        lastCheckedAt: "2026-05-27T00:00:00.000Z",
+        lastAnnouncedAt: null,
+        scoreVersion: "weighted-v1",
+        lastRank: 0,
+        lastTotalContributors: 0,
+        lastVauntScore: 10,
+        lastWeightedScore: 70,
+        lastReason: "opened issue",
+      },
+      context: {
+        actor: { login: "alice" },
+        eventDelta: 1,
+        canComment: true,
+        reason: "opened issue",
+      },
+    });
+
+    expect(result.currentScore).toBe(70);
   });
 });

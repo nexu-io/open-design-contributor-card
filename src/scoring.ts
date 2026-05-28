@@ -52,7 +52,7 @@ export function resolveCurrentScore(args: {
   const vauntRankScore = args.vauntScore ?? 0;
   const githubWeighted = weightedScoreFromStats(args.stats);
   const event = eventScoreFloor(args.context, args.stats);
-  const state = args.existing?.scoreVersion === SCORE_VERSION ? args.existing.lastKnownScore + event : 0;
+  const state = 0;
 
   return {
     currentScore: Math.max(vauntRankScore, githubWeighted, state, event),

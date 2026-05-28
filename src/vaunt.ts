@@ -63,7 +63,6 @@ export async function fetchVauntContributorLookup(owner: string, repo: string, l
       }
     }
 
-    if (match && minHumanScore < match.score) break;
     if (!payload.next_cursor || payload.next_cursor === cursor) break;
     if (!match && minHumanScore < MIN_SIGNAL_SCORE) break;
     cursor = payload.next_cursor;
