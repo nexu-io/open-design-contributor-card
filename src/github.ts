@@ -83,7 +83,7 @@ export class GitHubAppClient {
 
   private async createAppJwt(): Promise<string> {
     const normalizedKey = this.privateKeyPem.replace(/\\n/g, "\n");
-    const key = await importPKCS8(normalizedKey, "RS256");
+    const key = await importGitHubAppPrivateKey(normalizedKey);
     const now = Math.floor(Date.now() / 1000);
     return new SignJWT({})
       .setProtectedHeader({ alg: "RS256", typ: "JWT" })
@@ -92,4 +92,48 @@ export class GitHubAppClient {
       .setIssuer(this.appId)
       .sign(key);
   }
+}
+
+function pemToArrayBuffer(pem: string): ArrayBuffer {
+  const cleaned = pem
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
+    .replace(/\s+/g, "");
+  const binary = atob(cleaned);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes.buffer;
+}
+
+function pkcs1ToPkcs8(pkcs1: ArrayBuffer): ArrayBuffer {
+  const prefix = new Uint8Array([
+    0x30, 0x82, 0x00, 0x00, 0x02, 0x01, 0x00, 0x30, 0x0d, 0x06, 0x09, 0x2a,
+    0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00, 0x04, 0x82,
+    0x00, 0x00,
+  ]);
+  const body = new Uint8Array(pkcs1);
+  prefix[2] = ((body.length + 22) >> 8) & 0xff;
+  prefix[3] = (body.length + 22) & 0xff;
+  prefix[24] = (body.length >> 8) & 0xff;
+  prefix[25] = body.length & 0xff;
+  const output = new Uint8Array(prefix.length + body.length);
+  output.set(prefix, 0);
+  output.set(body, prefix.length);
+  return output.buffer;
+}
+
+async function importGitHubAppPrivateKey(pem: string): Promise<CryptoKey> {
+  if (!pem.includes("BEGIN RSA PRIVATE KEY")) {
+    return importPKCS8(pem, "RS256");
+  }
+
+  return crypto.subtle.importKey(
+    "pkcs8",
+    pkcs1ToPkcs8(pemToArrayBuffer(pem)),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
 }
