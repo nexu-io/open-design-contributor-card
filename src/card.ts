@@ -35,8 +35,8 @@ export function renderContributorCard(card: CardModel): Uint8Array {
   <text x="88" y="620" fill="#ffffff" font-size="120" font-weight="700" font-family="Inter, Arial, sans-serif">${card.points.toLocaleString()}</text>
 
   <text x="88" y="760" fill="#e2e8f0" font-size="44" font-family="Inter, Arial, sans-serif">RANK</text>
-  <text x="88" y="850" fill="#ffffff" font-size="72" font-weight="700" font-family="Inter, Arial, sans-serif">#${card.rank}</text>
-  <text x="270" y="850" fill="#94a3b8" font-size="40" font-family="Inter, Arial, sans-serif">top ${topPercent.toFixed(1)}%</text>
+  <text x="88" y="850" fill="#ffffff" font-size="72" font-weight="700" font-family="Inter, Arial, sans-serif">#${card.rank.toLocaleString()}</text>
+  <text x="88" y="908" fill="#94a3b8" font-size="36" font-family="Inter, Arial, sans-serif">top ${topPercent.toFixed(1)}%</text>
 
   <text x="88" y="980" fill="#e2e8f0" font-size="44" font-family="Inter, Arial, sans-serif">ACTIVITY</text>
   <text x="88" y="1060" fill="#ffffff" font-size="38" font-family="Inter, Arial, sans-serif">PRs merged: ${card.prsMerged}</text>
