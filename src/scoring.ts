@@ -5,10 +5,11 @@ export const SCORE_VERSION = "weighted-v1";
 export const SCORE_WEIGHTS = {
   firstMergedPr: 30,
   subsequentMergedPr: 12,
-  review: 3,
+  review: 4,
   issueOpened: 5,
   comment: 1,
   discussion: 2,
+  discussionAnswered: 6,
 } as const;
 
 export function weightedScoreFromStats(stats: ContributorStats): number {
@@ -36,8 +37,9 @@ export function eventScoreFloor(context: EventContext, stats: ContributorStats):
     case "created PR review comment":
       return SCORE_WEIGHTS.comment;
     case "created discussion":
-    case "created discussion comment":
       return SCORE_WEIGHTS.discussion;
+    case "created discussion comment":
+      return SCORE_WEIGHTS.discussionAnswered;
     default:
       return context.eventDelta;
   }

@@ -24,9 +24,9 @@ export const TIERS: readonly TierDef[] = [
     sloganEn: "Lit the spark.",
     sloganCn: "点燃第一束火花。",
     encouragementEn:
-      "Every great contribution starts with a single spark. You showed up — that is the hardest step.",
+      "Every great contribution starts with a single spark. You showed up — that's the hardest step. Welcome to Open Design.",
     encouragementCn:
-      "每一个伟大的贡献都从一束微小的火花开始。你来了——这就是最难的一步。",
+      "每一个伟大的贡献都从一束微小的火花开始。你来了——这就是最难的一步。欢迎加入 Open Design。",
   },
   {
     key: "signal",
@@ -38,9 +38,9 @@ export const TIERS: readonly TierDef[] = [
     sloganEn: "Sending steady signals.",
     sloganCn: "发出第一道信号。",
     encouragementEn:
-      "Your contributions send a clear signal across the network: you care about making Open Design better.",
+      "Your contributions are sending a clear signal across the network: you care about making Open Design better. Keep transmitting.",
     encouragementCn:
-      "你的贡献向整个网络发出了一个清晰的信号：你在认真让 Open Design 变得更好。",
+      "你的第一次贡献不只是合入了代码——它向整个网络发出了一个信号：\"我在这里，我用心了\"。继续发声。",
   },
   {
     key: "node",
@@ -52,9 +52,9 @@ export const TIERS: readonly TierDef[] = [
     sloganEn: "Holding the network together.",
     sloganCn: "撑起网络的节点。",
     encouragementEn:
-      "You became a node others can rely on, build on, and connect through.",
+      "You're no longer just passing through. You've become a node — a point others rely on, build on, and connect through. The network is stronger because of you.",
     encouragementCn:
-      "你已经长成了一个别人可以依靠、可以连接、可以建造的节点。",
+      "你不再只是路过。你已经长成了一个节点——一个别人可以依靠、可以连接、可以建造的点。整个网络因为你而更稳固。",
   },
   {
     key: "beacon",
@@ -66,9 +66,9 @@ export const TIERS: readonly TierDef[] = [
     sloganEn: "Guiding the way for others.",
     sloganCn: "为他人指引方向。",
     encouragementEn:
-      "New contributors look to your reviews, judgement, and taste. You are shaping how Open Design feels.",
+      "Most contributors come and go. You stayed long enough to become a guide. New contributors look to your reviews, your judgement, your taste. You're shaping how Open Design feels — for everyone who comes after you.",
     encouragementCn:
-      "新人会看向你的 review、判断和品味。你正在塑造 Open Design 的气质。",
+      "大多数贡献者来了又走。你留得足够久，长成了一座灯塔。新人寻找你的 review、你的判断、你的品味。你正在塑造 Open Design 的气质——为每一个之后到来的人。",
   },
   {
     key: "nova",
@@ -80,9 +80,9 @@ export const TIERS: readonly TierDef[] = [
     sloganEn: "Bright as a Nova.",
     sloganCn: "如新星般璀璨。",
     encouragementEn:
-      "You did not just help — you defined what Open Design could become.",
+      "Only a handful will ever reach this point. You didn't just help — you defined what Open Design could become. When the world looks at this project, your work is part of what they see. Burn bright.",
     encouragementCn:
-      "你不只是帮过忙——你定义了 Open Design 能成为什么样子。",
+      "整个项目的历史上，只有极少数人能到达这一步。你不只是帮过忙——你定义了 Open Design 能成为什么样子。当世界看向这个项目时，你的工作就是他们看到的一部分。继续闪耀。",
   },
 ] as const;
 
@@ -92,6 +92,12 @@ export function tierFromPoints(points: number): TierDef {
     if (points >= tier.threshold) current = tier;
   }
   return current;
+}
+
+export function tierByKey(key: TierKey): TierDef {
+  const tier = TIERS.find((entry) => entry.key === key);
+  if (!tier) throw new Error(`Unknown tier: ${key}`);
+  return tier;
 }
 
 export function nextTier(key: TierKey): TierDef | null {

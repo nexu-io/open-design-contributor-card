@@ -42,7 +42,7 @@ describe("resolveCurrentScore", () => {
       },
     });
 
-    expect(result.currentScore).toBe(33);
+    expect(result.currentScore).toBe(34);
   });
 
   it("does not add an event floor to existing state on reruns", () => {

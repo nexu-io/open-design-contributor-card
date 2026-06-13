@@ -1,9 +1,10 @@
-import { renderContributorCard, cardObjectKey } from "./card";
+import { renderContributorCard, cardObjectKey, legacySvgCardObjectKey } from "./card";
 import { tierUpComment, welcomeSparkComment } from "./comments";
 import { extractContext, isBotLogin, shouldAnnounce } from "./context";
 import { GitHubAppClient } from "./github";
+import { localRankFromScores, topPercent } from "./rank";
 import { resolveCurrentScore, SCORE_VERSION, weightedScoreFromStats } from "./scoring";
-import { recordShareClick, getContributorState, getIngestionEvent, insertCardEvent, recordIngestionEvent, upsertContributorState } from "./storage";
+import { recordShareClick, getContributorState, getIngestionEvent, insertCardEvent, listContributorScores, recordIngestionEvent, upsertContributorState } from "./storage";
 import { repoCampaignUrl, trackedShareUrl } from "./share";
 import { writeLeaderboardSnapshot } from "./snapshot";
 import { tierFromPoints } from "./tiers";
@@ -67,7 +68,7 @@ function cardEventDedupeKey(event: { recipientLogin: string; tierKey: string; su
 }
 
 function cardUrl(publicBaseUrl: string, eventId: string): string {
-  return `${publicBaseUrl.replace(/\/$/, "")}/cards/${encodeURIComponent(eventId)}.svg`;
+  return `${publicBaseUrl.replace(/\/$/, "")}/cards/${encodeURIComponent(eventId)}.png`;
 }
 
 async function processRelay(env: RuntimeEnv, envelope: RelayEnvelope): Promise<Response> {
@@ -94,10 +95,11 @@ async function processRelay(env: RuntimeEnv, envelope: RelayEnvelope): Promise<R
     requiredSecret(env.GITHUB_APP_PRIVATE_KEY, "GITHUB_APP_PRIVATE_KEY"),
   );
 
-  const [vauntLookup, stats, existing] = await Promise.all([
+  const [vauntLookup, stats, existing, contributorScores] = await Promise.all([
     fetchVauntContributorLookup(owner, repo, context.actor.login),
     github.fetchContributorStats(owner, repo, context.actor.login),
     getContributorState(env.DB, context.actor.login),
+    listContributorScores(env.DB),
   ]);
 
   const { currentScore, sources } = resolveCurrentScore({
@@ -107,17 +109,23 @@ async function processRelay(env: RuntimeEnv, envelope: RelayEnvelope): Promise<R
     context,
   });
   const currentTier = tierFromPoints(currentScore);
-  const rank = vauntLookup.score?.rank ?? vauntLookup.totalContributors + 1;
-  const totalContributors = Math.max(vauntLookup.totalContributors, rank);
+  const localRank = localRankFromScores(contributorScores, context.actor.login, currentScore);
+  const rank = vauntLookup.score?.rank ?? localRank.rank;
+  const totalContributors = vauntLookup.score?.rank
+    ? Math.max(vauntLookup.totalContributors, rank)
+    : localRank.totalContributors;
   const decision = shouldAnnounce(currentTier.key, existing);
 
   const card: CardModel = {
     username: context.actor.login,
+    avatarUrl: context.actor.avatarUrl ?? "",
     rank,
     totalContributors,
+    topPercent: topPercent(rank, totalContributors),
     points: currentScore,
     tierKey: currentTier.key,
     tierName: currentTier.nameEn,
+    streakWeeks: existing?.streakWeeks ?? 0,
     prsMerged: stats.prsMerged,
     reviews: stats.reviews,
     issuesOpened: stats.issuesOpened,
@@ -131,8 +139,8 @@ async function processRelay(env: RuntimeEnv, envelope: RelayEnvelope): Promise<R
     const createdAt = new Date().toISOString();
     const eventId = `${context.actor.login}-${decision.tierKey}-${createdAt.replace(/[:.]/g, "-")}`;
     const objectKey = cardObjectKey(eventId);
-    await env.CARD_ASSETS.put(objectKey, renderContributorCard(card), {
-      httpMetadata: { contentType: "image/svg+xml; charset=utf-8" },
+    await env.CARD_ASSETS.put(objectKey, await renderContributorCard(card), {
+      httpMetadata: { contentType: "image/png" },
     });
 
     const commentBody = decision.scenario === "welcome-spark"
@@ -208,15 +216,32 @@ async function processRelay(env: RuntimeEnv, envelope: RelayEnvelope): Promise<R
 }
 
 async function handleCardAsset(env: RuntimeEnv, url: URL): Promise<Response> {
-  const eventId = url.pathname.replace(/^\/cards\//, "").replace(/\.svg$/, "");
-  const object = await env.CARD_ASSETS.get(cardObjectKey(eventId));
-  if (!object) return new Response("not found", { status: 404 });
-  return new Response(object.body, {
-    headers: {
-      "content-type": object.httpMetadata?.contentType ?? "image/svg+xml; charset=utf-8",
-      "cache-control": "public, max-age=31536000, immutable",
-    },
-  });
+  const requestedName = decodeURIComponent(url.pathname.replace(/^\/cards\//, ""));
+  const eventId = requestedName.replace(/\.(?:png|svg)$/, "");
+  const extension = requestedName.endsWith(".svg") ? "svg" : "png";
+  if (extension === "svg") {
+    const redirectUrl = new URL(url);
+    redirectUrl.pathname = `/cards/${encodeURIComponent(eventId)}.png`;
+    return Response.redirect(redirectUrl.toString(), 302);
+  }
+
+  const candidates = [
+    { key: cardObjectKey(eventId), contentType: "image/png" },
+    { key: legacySvgCardObjectKey(eventId), contentType: "image/svg+xml; charset=utf-8" },
+  ];
+
+  for (const candidate of candidates) {
+    const object = await env.CARD_ASSETS.get(candidate.key);
+    if (!object) continue;
+    return new Response(object.body, {
+      headers: {
+        "content-type": object.httpMetadata?.contentType ?? candidate.contentType,
+        "cache-control": "public, max-age=31536000, immutable",
+      },
+    });
+  }
+
+  return new Response("not found", { status: 404 });
 }
 
 async function handleShare(env: RuntimeEnv, url: URL): Promise<Response> {
@@ -243,7 +268,7 @@ export default {
       return json({ ok: true });
     }
 
-    if (request.method === "GET" && url.pathname.startsWith("/cards/")) {
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname.startsWith("/cards/")) {
       return handleCardAsset(env, url);
     }
 

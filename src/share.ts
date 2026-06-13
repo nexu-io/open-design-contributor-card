@@ -1,4 +1,5 @@
 import type { CardModel } from "./types";
+import { fuzzyContributorCount } from "./rank";
 
 export function trackedShareUrl(publicBaseUrl: string, eventId: string): string {
   return `${publicBaseUrl.replace(/\/$/, "")}/share/${encodeURIComponent(eventId)}`;
@@ -17,11 +18,6 @@ export function trackedShareOutUrl(publicBaseUrl: string, destinationUrl: string
   const base = `${publicBaseUrl.replace(/\/$/, "")}/share-out/${encodeURIComponent(eventId)}`;
   const params = new URLSearchParams({ to: destinationUrl, lang });
   return `${base}?${params.toString()}`;
-}
-
-function fuzzyContributorCount(total: number): string {
-  if (total < 50) return `${total}`;
-  return `${Math.max(10, Math.round(total / 10) * 10)}+`;
 }
 
 export function xShareUrl(publicBaseUrl: string, repoUrl: string, card: CardModel, lang: "en" | "cn", eventId: string): string {

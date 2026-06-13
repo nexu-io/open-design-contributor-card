@@ -26,15 +26,19 @@ export interface ContributorStateEntry {
   reviews?: number;
   issuesOpened?: number;
   commentedThreads?: number;
+  streakWeeks?: number;
 }
 
 export interface CardModel {
   username: string;
+  avatarUrl: string;
   rank: number;
   totalContributors: number;
+  topPercent: number;
   points: number;
   tierKey: TierKey;
   tierName: string;
+  streakWeeks: number;
   prsMerged: number;
   reviews: number;
   issuesOpened: number;

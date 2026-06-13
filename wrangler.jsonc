@@ -6,6 +6,13 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": false
+    }
+  ],
 	"observability": {
 		"enabled": true,
 		"head_sampling_rate": 1

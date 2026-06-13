@@ -1,10 +1,7 @@
 import { nextTier, tierFromPoints } from "./tiers";
+import { rankSummary } from "./rank";
 import { xShareUrl } from "./share";
 import type { CardModel } from "./types";
-
-function rankSummary(rank: number, totalContributors: number): string {
-  return `Rank #${rank} among ${Math.max(totalContributors, rank)} contributors.`;
-}
 
 export function tierUpComment(card: CardModel, cardImageUrl: string, publicBaseUrl: string, repoUrl: string, eventId: string): string {
   const tier = tierFromPoints(card.points);

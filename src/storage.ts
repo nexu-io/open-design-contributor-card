@@ -14,7 +14,12 @@ export async function getContributorState(db: D1Database, login: string): Promis
       last_total_contributors,
       last_vaunt_score,
       last_weighted_score,
-      last_reason
+      last_reason,
+      prs_merged,
+      reviews,
+      issues_accepted,
+      discussions_answered,
+      streak_weeks
     FROM contributors
     WHERE login = ?1
   `).bind(login.toLowerCase()).first<any>();
@@ -33,7 +38,24 @@ export async function getContributorState(db: D1Database, login: string): Promis
     lastVauntScore: row.last_vaunt_score,
     lastWeightedScore: row.last_weighted_score,
     lastReason: row.last_reason,
+    prsMerged: row.prs_merged,
+    reviews: row.reviews,
+    issuesOpened: row.issues_accepted,
+    commentedThreads: row.discussions_answered,
+    streakWeeks: row.streak_weeks,
   };
+}
+
+export async function listContributorScores(db: D1Database): Promise<Array<{ login: string; score: number }>> {
+  const result = await db.prepare(`
+    SELECT login, last_known_score
+    FROM contributors
+  `).all<{ login: string; last_known_score: number }>();
+
+  return result.results.map((row) => ({
+    login: row.login,
+    score: row.last_known_score,
+  }));
 }
 
 export async function upsertContributorState(db: D1Database, state: ContributorStateEntry): Promise<void> {
