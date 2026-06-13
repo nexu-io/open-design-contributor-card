@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 describe("fetchVauntContributorLookup", () => {
-  it("continues paging after finding the target so totalContributors is complete", async () => {
+  it("stops paging after finding the target", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input));
       const after = url.searchParams.get("after");
@@ -38,8 +38,8 @@ describe("fetchVauntContributorLookup", () => {
     const lookup = await fetchVauntContributorLookup("nexu-io", "open-design", "bob");
 
     expect(lookup.score).toMatchObject({ login: "bob", score: 50, rank: 2 });
-    expect(lookup.totalContributors).toBe(4);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(lookup.totalContributors).toBe(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to an empty lookup when Vaunt is unavailable", async () => {
@@ -57,5 +57,26 @@ describe("fetchVauntContributorLookup", () => {
       status: 404,
       statusText: "Not Found",
     });
+  });
+
+  it("falls back to the contributors fetched so far when Vaunt times out", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi.fn(async () => {
+      throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchVauntContributorLookup("nexu-io", "open-design", "alice")).resolves.toEqual({
+      score: null,
+      totalContributors: 0,
+    });
+    expect(warn).toHaveBeenCalledWith("Vaunt API lookup failed", expect.objectContaining({
+      owner: "nexu-io",
+      repo: "open-design",
+      login: "alice",
+      pages: 1,
+      totalFetched: 0,
+      error: "TimeoutError: The operation was aborted due to timeout",
+    }));
   });
 });

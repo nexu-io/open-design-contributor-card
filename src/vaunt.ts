@@ -1,7 +1,9 @@
 const API_BASE = "https://api.vaunt.dev/v1";
 const PAGE_LIMIT = 100;
+const MAX_PAGES = 5;
 const MIN_SIGNAL_SCORE = 10;
 const VAUNT_TIMEOUT_MS = 8_000;
+const VAUNT_TOTAL_TIMEOUT_MS = 15_000;
 
 export interface VauntContributorScore {
   login: string;
@@ -40,15 +42,39 @@ export async function fetchVauntContributorLookup(owner: string, repo: string, l
   let rank = 0;
   let match: Omit<VauntContributorScore, "totalFetched"> | null = null;
   const seen = new Set<string>();
+  const startedAt = Date.now();
+  let pages = 0;
 
   while (true) {
+    pages += 1;
+    const remainingBudget = VAUNT_TOTAL_TIMEOUT_MS - (Date.now() - startedAt);
+    if (remainingBudget <= 0) {
+      console.warn("Vaunt API lookup budget exhausted", { owner, repo, login, pages: pages - 1, totalFetched: seen.size });
+      break;
+    }
+
     const url = new URL(`${API_BASE}/github/entities/${owner}/repositories/${repo}/contributors`);
     url.searchParams.set("limit", String(PAGE_LIMIT));
     if (cursor) url.searchParams.set("after", cursor);
-    const response = await fetch(url, { signal: AbortSignal.timeout(VAUNT_TIMEOUT_MS) });
+
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: AbortSignal.timeout(Math.max(1, Math.min(VAUNT_TIMEOUT_MS, remainingBudget))) });
+    } catch (error) {
+      console.warn("Vaunt API lookup failed", {
+        owner,
+        repo,
+        login,
+        pages,
+        totalFetched: seen.size,
+        error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+      });
+      break;
+    }
+
     if (!response.ok) {
       console.warn("Vaunt API lookup failed", { owner, repo, status: response.status, statusText: response.statusText });
-      return { score: null, totalContributors: seen.size };
+      break;
     }
 
     const payload = await response.json<VauntContributorsResponse>();
@@ -66,6 +92,11 @@ export async function fetchVauntContributorLookup(owner: string, repo: string, l
     }
 
     if (!payload.next_cursor || payload.next_cursor === cursor) break;
+    if (match) break;
+    if (pages >= MAX_PAGES) {
+      console.warn("Vaunt API lookup page limit reached", { owner, repo, login, pages, totalFetched: seen.size });
+      break;
+    }
     if (!match && minHumanScore < MIN_SIGNAL_SCORE) break;
     cursor = payload.next_cursor;
   }
